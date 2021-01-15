@@ -90,7 +90,7 @@ class TurtleWaipoint(object):
 
                         self.vel_msg.angular.z = self.angular_Pgain * (math.atan2(self.y_displacement, self.x_displacement)-self.theta)
 
-                    # if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) < 3.14/6):
+                    # if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) < 3.14/6)  :
 
                         self.vel_msg.linear.x = self.linear_Pgain*self.distance
 
