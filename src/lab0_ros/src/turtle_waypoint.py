@@ -76,13 +76,13 @@ class TurtleWaipoint(object):
                 else:
  
                     self.angular_Pgain = 1
-                    self.linear_Pgain = 0.4
+                    self.linear_Pgain = 0.5
  
-                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) > 0.001):
+                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) > 0.01):
 
                         self.vel_msg.angular.z = self.angular_Pgain * (math.atan2(self.y_displacement, self.x_displacement)-self.theta)
 
-                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) < 0.001)  :
+                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) < 0.4):
 
                         self.vel_msg.linear.x = self.linear_Pgain*self.distance
 
