@@ -28,36 +28,28 @@ class TurtleWaipoint(object):
  
         # ROS init
         rospy.init_node('turtle_waypoint')
-        # TODONE: Define pulisher: topic name, message type
         self.pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size = 10)
-        # TODONE: Define subscriber: topic name, message type, function callback
         self.sub = rospy.Subscriber('/turtle1/pose', Pose, self.callback)
-        self.vel_msg = Twist()
         
- 
- 
-        # Retrieve waypoint
+        self.vel_msg = Twist()
+
         self.waypoint_x = waypoint_x
         self.waypoint_y = waypoint_y
+
         if self.waypoint_x is None or self.waypoint_y is None:
-            # No waypoint specified => look at the param server
-            if rospy.get_param("/default_x") is True and rospy.get_param("/default_y") is True:  # TODO: change for the correct expression
+            if rospy.get_param("/default_x") is True and rospy.get_param("/default_y") is True:
                 print("Waypoint found in param server")
-                # TODONE Save params from param server
-                self.waypoint_x = rospy.get_param("/default_x")  # TODO: change for the correct expression
-                self.waypoint_y = rospy.get_param("/default_y")  # TODO: change for the correct expression
+                self.waypoint_x = rospy.get_param("/default_x")
+                self.waypoint_y = rospy.get_param("/default_y")
             else:
-                # No waypoint in param server => finish
                 print("No waypoint found in param server")
                 exit(1)
-        # Show the waypoint
  
         print('Heading to: {:.2f}, {:.2f}'.format(self.waypoint_x,
                                                   self.waypoint_y))
  
     def callback(self, msg):
         """Saves the tutle position when a message is received."""
-        # TODO: store the position in self.x, self.y and self.theta variables.
         self.x = msg.x
         self.y = msg.y
         self.theta = msg.theta
@@ -84,13 +76,13 @@ class TurtleWaipoint(object):
                 else:
  
                     self.angular_Pgain = 1
-                    self.linear_Pgain = 1
+                    self.linear_Pgain = 0.4
  
-                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) > 0.01):
+                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) > 0.001):
 
                         self.vel_msg.angular.z = self.angular_Pgain * (math.atan2(self.y_displacement, self.x_displacement)-self.theta)
 
-                    # if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) < 3.14/6)  :
+                    if (abs(self.theta - math.atan2(self.y_displacement, self.x_displacement)) < 0.001)  :
 
                         self.vel_msg.linear.x = self.linear_Pgain*self.distance
 
@@ -98,8 +90,6 @@ class TurtleWaipoint(object):
 
                     print('self angle: ', self.theta,' atan2 angle: ', math.atan2(self.y_displacement, self.x_displacement),' X: ',self.x,'  Y: ', self.y, 'distance: ', self.distance)
 
- 
- 
 if __name__ == '__main__':
     # Check commandline inputs
     if not len(sys.argv) == 3:
