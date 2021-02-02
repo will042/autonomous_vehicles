@@ -39,7 +39,7 @@ class driver(object):
  
         #Threshold for distance to goal
         self.goal_th_xy = rospy.get_param('goal_thershold_xy',0.1) #Position threshold
-        self.goal_th_ang = rospy.get_param('goal_threshold_ang',0.01) #Orientation threshold
+        self.goal_th_ang = rospy.get_param('goal_threshold_ang',0.1) #Orientation threshold
  
         #Point to the first goal
         self.active_goal = 0
@@ -49,13 +49,15 @@ class driver(object):
         self.sub = rospy.Subscriber('/odom', Odometry, self.callback)
  
         #TODO define publisher        
-        self.pub = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=10)
+        self.pub = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=1)
  
         #TODO define the velocity message
         self.vmsg = Twist()   
  
         #Has the goal been loaded?
-        self.params_loaded = False            
+        self.params_loaded = False      
+
+        # self.initialposition = True      
  
     def print_goals(self):
         '''
@@ -144,8 +146,8 @@ class driver(object):
         self.compute_velocity()
         self.publish()
         self.check_goal()
-        self.print_goal_and_pose()
- 
+        # self.print_goal_and_pose()
+        # print(self.dist_to_goal_ang())
  
     def drive(self):
         '''
@@ -192,8 +194,11 @@ class driver(object):
         self.position_x = msg.pose.pose.position.x
         self.position_y = msg.pose.pose.position.y
         orient = msg.pose.pose.orientation
-        yaw = tf.transformations.euler_from_quaternion((orient.x, orient.y, orient.z, orient.w))[2]*180/3.14159
+        yaw = tf.transformations.euler_from_quaternion((orient.x, orient.y, orient.z, orient.w))[2]
         # print("%.2f %.2f %.2f (%.2f)" % (x,y,yaw,yaw*3.14159/180))
+        # if self.initialposition:
+        #     self.initial_theta_position = yaw
+        #     self.initialposition = False
         self.position_theta = yaw
  
  
@@ -203,21 +208,40 @@ class driver(object):
  
         TODO implement!
         '''
- 
+        
+        self.x_displacement = self.x-self.position_x
+        self.y_displacement = self.y-self.position_y
+        self.ang_displacement = math.atan2(self.y_displacement, self.x_displacement)
+
+        # print('ang_displacement: ', self.ang_displacement)
+        # self.rotation_goal = self.initial_theta_position + self.ang_displacement
+
+        # self.angular_distance = np.abs(angle_wrap(self.rotation_goal-self.position_theta))
+
         self.angular_Pgain = 0.5
         self.linear_Pgain = 0.5
  
-        if self.dist_to_goal_ang() > 0.1:
+        if  np.abs(angle_wrap(self.ang_displacement-self.position_theta)) > 0.1:
  
-            self.vmsg.angular.z = self.angular_Pgain * self.dist_to_goal_ang()
-            print('angular: ', self.vmsg.angular.z)
+            self.vmsg.angular.z = self.angular_Pgain * angle_wrap(self.ang_displacement-self.position_theta)
+            self.vmsg.linear.x = 0
+            # print(self.ang_displacement, self.position_theta)
+            # self.vmsg.angular.z = 0.25
+            # print('angular: ', self.vmsg.angular.z)
  
-        if self.dist_to_goal_ang() < 0.1:
- 
+        if np.abs(angle_wrap(self.ang_displacement-self.position_theta)) < 0.1:
             self.vmsg.linear.x = self.linear_Pgain * self.dist_to_goal_xy()
             # self.vmsg.angular.z = 0
-            print('linear:', self.vmsg.linear.x)
+            # self.vmsg.linear.x = 0.1
+            # print('linear:', self.vmsg.linear.x)
  
+        print(self.dist_to_goal_xy())
+
+        if self.dist_to_goal_xy() < 0.1:
+            self.vmsg.angular.z = self.angular_Pgain * self.dist_to_goal_ang()
+            self.vmsg.linear.x = 0
+
+
         # if self.has_arrived():
         #     self.vmsg.linear.x = 0
         #     self.vmsg.linear.y = 0
@@ -242,6 +266,3 @@ class driver(object):
         #     self.vmsg.angular.x = 0
         #     self.vmsg.angular.y = 0
         #     self.vmsg.angular.z = disAngle
- 
- 
- 
