@@ -195,10 +195,6 @@ class driver(object):
         self.position_y = msg.pose.pose.position.y
         orient = msg.pose.pose.orientation
         yaw = tf.transformations.euler_from_quaternion((orient.x, orient.y, orient.z, orient.w))[2]
-        # print("%.2f %.2f %.2f (%.2f)" % (x,y,yaw,yaw*3.14159/180))
-        # if self.initialposition:
-        #     self.initial_theta_position = yaw
-        #     self.initialposition = False
         self.position_theta = yaw
  
  
@@ -211,58 +207,22 @@ class driver(object):
         
         self.x_displacement = self.x-self.position_x
         self.y_displacement = self.y-self.position_y
-        self.ang_displacement = math.atan2(self.y_displacement, self.x_displacement)
+        self.ang_displacement = math.atan2(self.y_displacement, self.x_displacement)    # Turning angle for facing goal (x,y)
 
-        # print('ang_displacement: ', self.ang_displacement)
-        # self.rotation_goal = self.initial_theta_position + self.ang_displacement
-
-        # self.angular_distance = np.abs(angle_wrap(self.rotation_goal-self.position_theta))
-
+        # Linear and angular gains for velocity
         self.angular_Pgain = 0.5
         self.linear_Pgain = 0.5
  
-        if  np.abs(angle_wrap(self.ang_displacement-self.position_theta)) > 0.1:
+        if  np.abs(angle_wrap(self.ang_displacement-self.position_theta)) > self.goal_th_ang:
  
             self.vmsg.angular.z = self.angular_Pgain * angle_wrap(self.ang_displacement-self.position_theta)
             self.vmsg.linear.x = 0
-            # print(self.ang_displacement, self.position_theta)
-            # self.vmsg.angular.z = 0.25
-            # print('angular: ', self.vmsg.angular.z)
- 
-        if np.abs(angle_wrap(self.ang_displacement-self.position_theta)) < 0.1:
-            self.vmsg.linear.x = self.linear_Pgain * self.dist_to_goal_xy()
-            # self.vmsg.angular.z = 0
-            # self.vmsg.linear.x = 0.1
-            # print('linear:', self.vmsg.linear.x)
- 
-        print(self.dist_to_goal_xy())
 
-        if self.dist_to_goal_xy() < 0.1:
+
+        if np.abs(angle_wrap(self.ang_displacement-self.position_theta)) < self.goal_th_ang:
+            self.vmsg.linear.x = self.linear_Pgain * self.dist_to_goal_xy()
+
+
+        if self.dist_to_goal_xy() < self.goal_th_xy:
             self.vmsg.angular.z = self.angular_Pgain * self.dist_to_goal_ang()
             self.vmsg.linear.x = 0
-
-
-        # if self.has_arrived():
-        #     self.vmsg.linear.x = 0
-        #     self.vmsg.linear.y = 0
-        #     self.vmsg.linear.z = 0
-        #     self.vmsg.angular.x = 0
-        #     self.vmsg.angular.y = 0
-        #     self.vmsg.angular.z = 0
-        # else:
-        #     if self.has_arrived_xy():
-        #         disAngle = self.dist_to_goal_ang()
-        #         disXY = 0
-        #     else if self.has_arrived_ang():
-        #         disXY = self.dist_to_goal_xy()
-        #         disAngle = 0
-        #     else:
-        #         disXY = self.dist_to_goal_xy()
-        #         disAngle = self.dist_to_goal_ang()
- 
-        #     self.vmsg.linear.x = disXY
-        #     self.vmsg.linear.y = 0
-        #     self.vmsg.linear.z = 0
-        #     self.vmsg.angular.x = 0
-        #     self.vmsg.angular.y = 0
-        #     self.vmsg.angular.z = disAngle
