@@ -3,7 +3,7 @@
 
 import numpy as np
 from probabilistic_lib.functions import angle_wrap, get_polar_line
-import math
+from math import exp
 
 #===============================================================================
 class ParticleFilter(object):
@@ -71,12 +71,11 @@ class ParticleFilter(object):
             # Increment particle positions in correct frame
             self.p_xy[0] += np.cos(self.p_ang) * odom[0] + np.sin(self.p_ang) * odom[1] + self.odom_lin_noise[0]
             self.p_xy[1] += np.cos(self.p_ang) * odom[1] - np.sin(self.p_ang) * odom[0] + self.odom_lin_noise[1]
-            
+
 
             # Increment angle
             self.p_ang += odom[2]+self.odom_ang_noise
             self.p_ang = angle_wrap(self.p_ang)
-
 
             #Update flag for resampling
             self.moving=True     
@@ -93,26 +92,30 @@ class ParticleFilter(object):
         val_ang = 1.0 / (self.meas_ang_noise * np.sqrt(2 * np.pi))
         
         # Loop over particles
-        #for i in range(self.num):
-            #
+        for i in range(self.num):
             
             # Transform map lines to local frame and to [range theta]
-            #
-            #for j in range(self.map.shape[0]):
-                # ... get_polar_line(...)
-                
+            lines_map = np.zeros([self.map.shape[0], 2])
+
+            for j in range(self.map.shape[0]):
+                lines_map[j,:] = get_polar_line(self.map[j], [self.p_xy[0,i], self.p_xy[1,i], self.p_ang[i]])
+
+
+
             # Transform measured lines to [range theta] and weight them
-            #
-            #for j in range(lines.shape[0]):
-                #
-                # ... get_polar_line(...)
-                #
-                # Weight them
-                #
-                #
-                #
-                #
-                
+            for j in range(lines.shape[0]):
+                measured_lines = get_polar_line(lines[j, :])
+    
+
+            # Weight them
+            weight = np.zeros([lines_map.shape[0],1])
+            for j in range(lines_map.shape[0]):
+                weight_rng = exp(-1*(measured_lines[0] - lines_map[j,0])**2/(2*self.meas_rng_noise**2))*val_rng
+                weight_ang = exp(-1*(measured_lines[1] - lines_map[j,1])**2/(2*self.meas_ang_noise**2))*val_ang
+                weight[j] = weight_rng * weight_ang
+
+            self.p_wei[i] = self.p_wei[i] * np.max(weight)
+
             # OPTIONAL question
             # make sure segments correspond, if not put weight to zero
             #
