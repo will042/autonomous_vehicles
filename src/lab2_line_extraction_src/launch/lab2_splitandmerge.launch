@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Bagfiles -->
-    <include file="$(find engr4200_basics_src)/launch/basics.launch">
+    <include file="$(find probabilistic_basics)/launch/basics.launch">
 	<arg name="dataset3" default="true"/>
     </include>
     

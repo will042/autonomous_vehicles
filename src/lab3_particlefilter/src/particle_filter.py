@@ -3,6 +3,7 @@
 
 import numpy as np
 from probabilistic_lib.functions import angle_wrap, get_polar_line
+import math
 
 #===============================================================================
 class ParticleFilter(object):
@@ -61,20 +62,22 @@ class ParticleFilter(object):
             self.moving=False
         else:
             # TODO: code here!!
+
             # Add Gaussian noise to odometry measures
-            # .... np.random.randn(...)
-            #
+            self.odom_lin_noise = np.random.randn(2,self.num) * self.odom_lin_sigma
+            self.odom_ang_noise = np.random.randn(self.num,) * self.odom_ang_sigma
             
+
             # Increment particle positions in correct frame
-            #self.p_xy +=
-            #
-            #
-            #
+            self.p_xy[0] += np.cos(self.p_ang) * odom[0] + np.sin(self.p_ang) * odom[1] + self.odom_lin_noise[0]
+            self.p_xy[1] += np.cos(self.p_ang) * odom[1] - np.sin(self.p_ang) * odom[0] + self.odom_lin_noise[1]
+            
 
             # Increment angle
-            #self.p_ang += ...
-            #self.p_ang = angle_wrap(self.p_ang)
-            
+            self.p_ang += odom[2]+self.odom_ang_noise
+            self.p_ang = angle_wrap(self.p_ang)
+
+
             #Update flag for resampling
             self.moving=True     
     
