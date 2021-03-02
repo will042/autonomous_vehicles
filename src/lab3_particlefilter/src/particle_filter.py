@@ -69,8 +69,8 @@ class ParticleFilter(object):
             
 
             # Increment particle positions in correct frame
-            self.p_xy[0] += np.cos(self.p_ang) * odom[0] + np.sin(self.p_ang) * odom[1] + self.odom_lin_noise[0]
-            self.p_xy[1] += np.cos(self.p_ang) * odom[1] - np.sin(self.p_ang) * odom[0] + self.odom_lin_noise[1]
+            self.p_xy[0] += np.cos(self.p_ang) * odom[0] - np.sin(self.p_ang) * odom[1] + self.odom_lin_noise[0]
+            self.p_xy[1] += np.cos(self.p_ang) * odom[1] + np.sin(self.p_ang) * odom[0] + self.odom_lin_noise[1]
 
 
             # Increment angle
@@ -79,7 +79,8 @@ class ParticleFilter(object):
 
             #Update flag for resampling
             self.moving=True     
-    
+
+
     #===========================================================================
     def weight(self, lines):
         '''
@@ -90,7 +91,7 @@ class ParticleFilter(object):
         # Constant values for all weightings
         val_rng = 1.0 / (self.meas_rng_noise * np.sqrt(2 * np.pi))
         val_ang = 1.0 / (self.meas_ang_noise * np.sqrt(2 * np.pi))
-        
+
         # Loop over particles
         for i in range(self.num):
             
@@ -105,7 +106,6 @@ class ParticleFilter(object):
             # Transform measured lines to [range theta] and weight them
             for j in range(lines.shape[0]):
                 measured_lines = get_polar_line(lines[j, :])
-    
 
             # Weight them
             weight = np.zeros([lines_map.shape[0],1])
@@ -136,23 +136,32 @@ class ParticleFilter(object):
         '''
         # TODO: code here!!
         # Look for particles to replicate
-        #
-        #
-        #
-        #for i in range(self.num):
-        #
-        #
-        #
-        #
-        #
+
+        xy = np.zeros([2, self.num])
+        ang = np.zeros([self.num,])
+
         
+        r = np.random.rand() / self.num
+        c = self.p_wei[0]
+        i = 0
+
+        for m in range(self.num):
+        
+            u = r + float(m) /self.num
+        
+            while u > c:
+                i += 1
+                c += self.p_wei[i]
+        
+            xy[:,m] = self.p_xy[:,i]
+            ang[m] = self.p_ang[i]
+            
         # Pick chosen particles
-        #
-        #
-        #
-        #self.p_xy =
-        #self.p_ang =
-        #self.p_wei =
+
+        self.p_xy = xy
+        self.p_ang = ang
+        self.p_wei = np.ones(self.num) / self.num
+
     
     #===========================================================================
     def get_mean_particle(self):
