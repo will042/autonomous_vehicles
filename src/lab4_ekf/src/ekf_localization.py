@@ -58,6 +58,19 @@ class EKF(object):
         #         http://wiki.scipy.org/NumPy_for_Matlab_Users
         # 1. Update self.xk and self.Pk using uk and self.Qk
         #        can use comp() from funtions.py
+        
+        self.xk = funcs.comp(self.xk, uk)
+
+        A = np.array([[1, 0, -1*(np.sin(self.xk[2])*uk[0] + np.cos(self.xk[2])*uk[1])],
+                      [0, 1, np.cos(self.xk[2])*uk[0]-np.sin(self.xk[2])*uk[1]],
+                      [0, 0, 1]])
+
+        W = np.array([[np.cos(self.xk[2]), -np.sin(self.xk[2]), 0],
+                      [np.sin(self.xk[2]), np.cos(self.xk[2]), 0],
+                      [0, 0, 1]])
+
+        self.Pk = np.dot(np.dot(A,self.Pk),np.transpose(A)) + np.dot(np.dot(W,self.Qk),np.transpose(W))
+
 
     # ==========================================================================
     def data_association(self, lines):
@@ -89,14 +102,14 @@ class EKF(object):
         Sk_list = list()
         Rk_list = list()
 
-        return Hk_list, Vk_list, Sk_list, Rk_list  # TODO: delete this line after your implement your function
+        # return Hk_list, Vk_list, Sk_list, Rk_list  # TODO: delete this line after your implement your function
 
         # For each obseved line
         print('\n-------- Associations --------')
         for i in range(0, lines.shape[0]):
 
             # Get the polar line representation in robot frame
-            # z = funcs.get_polar_line(...)
+            z = funcs.get_polar_line(lines[i,:])
 
             # Variables for finding minimum
             minD = 1e9
@@ -106,13 +119,14 @@ class EKF(object):
             for j in range(0, self.map.shape[0]):
 
                 # Compute matrices
-                # h = funcs.get_polar_line(...)
-                # H = self.jacobianH(...)
-                # v =
-                # S =
-
+                h = funcs.get_polar_line(self.map[j,:])
+                H = self.jacobianH(self.xk, h)
+                v = z-h
+                # S = 
+                
                 # Mahalanobis distance
-                # D =
+                # D = 
+
 
                 # Optional: Check if observed line is longer than map
                 ########################################################
@@ -177,8 +191,10 @@ class EKF(object):
         # K =
 
     # ==========================================================================
+	# 
+	# 
     def jacobianH(self, lineworld, xk):
-        """
+		"""
         Compute the jacobian of the get_polar_line function.
 
         It does it with respect to the robot state xk (done in pre-lab).
@@ -187,6 +203,20 @@ class EKF(object):
         ################################################################
         # Complete the Jacobian H from the pre-lab
         # Jacobian H
-        H = np.zeros((2, 3))
 
-        return H
+		x = xk[0]
+		y = xk[1]
+
+		# rho_w = lineworld[0]
+		theta_w = lineworld[1]
+
+		alpha = np.arctan2(y,x)
+
+		dist = np.sqrt(x**2 + y**2)
+
+		if dist != 0:
+			H = np.array([[ -1*(x*np.cos(alpha - theta_w) + y*np.sin(alpha - theta_w))/dist, -1*(y*np.cos(alpha - theta_w) - x*np.sin(alpha - theta_w))/dist, 0], [0, 0, -1]])
+		else:
+		    H = np.zeros((2, 3))
+
+		return H
