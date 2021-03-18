@@ -119,13 +119,14 @@ class EKF(object):
             for j in range(0, self.map.shape[0]):
 
                 # Compute matrices
-                h = funcs.get_polar_line(self.map[j,:])
-                H = self.jacobianH(self.xk, h)
+                h_world = funcs.get_polar_line(self.map[j,:])
+                H = self.jacobianH(self.xk, h_world)
+                h = funcs.get_polar_line(self.map[j,:],self.xk)
                 v = z-h
-                # S = 
+                S = np.dot(np.dot(H,self.Pk),np.transpose(H)) + self.Rk
                 
                 # Mahalanobis distance
-                # D = 
+                D = np.dot(np.dot(np.transpose(v), np.linalg.pinv(S)), v)
 
 
                 # Optional: Check if observed line is longer than map
@@ -134,24 +135,24 @@ class EKF(object):
 
                 # Check if the obseved line is the one with smallest
                 # mahalanobis distance
-                # if np.sqrt(D) < minD and not islonger:
-                #     minj = j
-                #     minz = z
-                #     minh = h
-                #     minH = H
-                #     minv = v
-                #     minS = S
-                #     minD = D
+                if np.sqrt(D) < minD and not islonger:
+                    minj = j
+                    minz = z
+                    minh = h
+                    minH = H
+                    minv = v
+                    minS = S
+                    minD = D
 
             # Minimum distance below threshold
-            # if minD < chi_thres:
-            #     print("\t{} -> {}".format(minz, minh))
-            #     # Append results
-            #     associd.append([i, minj])
-            #     Hk_list.append(minH)
-            #     Vk_list.append(minv)
-            #     Sk_list.append(minS)
-            #     Rk_list.append(self.Rk)
+            if minD < chi_thres:
+                print("\t{} -> {}".format(minz, minh))
+                # Append results
+                associd.append([i, minj])
+                Hk_list.append(minH)
+                Vk_list.append(minv)
+                Sk_list.append(minS)
+                Rk_list.append(self.Rk)
 
         return Hk_list, Vk_list, Sk_list, Rk_list
 
@@ -188,7 +189,10 @@ class EKF(object):
         # TODO: Program this function
         ################################################################
         # Do the EKF update
-        # K =
+        K = np.dot(np.dot(self.Pk, np.transpose(H)), np.linalg.pinv(S))
+        self.xk = self.xk + np.dot(K, v)
+        Ikh = np.eye(3) - np.dot(K, H)
+        self.Pk = np.dot(np.dot(Ikh,self.Pk), np.transpose(Ikh)) + np.dot(np.dot(K, R), np.transpose(K))
 
     # ==========================================================================
 	# 
@@ -215,7 +219,7 @@ class EKF(object):
 		dist = np.sqrt(x**2 + y**2)
 
 		if dist != 0:
-			H = np.array([[ -1*(x*np.cos(alpha - theta_w) + y*np.sin(alpha - theta_w))/dist, -1*(y*np.cos(alpha - theta_w) - x*np.sin(alpha - theta_w))/dist, 0], [0, 0, -1]])
+			H = np.array([[ (-y*np.sin(np.arctan(y / x) - theta_w) -x*np.cos(np.arctan(y/x)-theta_w) ) / np.sqrt(x**2 + y**2), ((1/x)*np.sin(np.arctan(y/x)-theta_w)*np.sqrt(x**2 + y**2))/ (1+(y/x)**2) -y*np.cos(np.arctan(y/x)-theta_w)/np.sqrt(x**2 + y**2), 0], [0, 0, -1]])
 		else:
 		    H = np.zeros((2, 3))
 
