@@ -9,11 +9,11 @@
 
     <!--  Select one of the datasets below   -->
     <arg name="dataset1" default="false"/>
-    <arg name="dataset2" default="false"/>
-    <arg name="dataset3" default="true"/>
+    <arg name="dataset2" default="true"/>
+    <arg name="dataset3" default="false"/>
 
     <!-- Source data -->
-    <include file="$(find engr4200_basics_src)/launch/basics.launch">
+    <include file="$(find probabilistic_basics)/launch/basics.launch">
         <!-- Rosbag arguments -->
         <arg name="frequency" default="$(arg frequency)"/>
         <arg name="pause"     default="$(arg pause)"/>
@@ -41,4 +41,8 @@
         <param if="$(arg dataset3)" name="dataset" value="3" type="int"/>
     </node>
     
+    <node pkg="project_slam" type="findbrick.py" name="find_brick">
+
+    <node pkg="project_slam" type="navigation.py" name="turtle_navigation">
+
 </launch>

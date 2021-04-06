@@ -1,7 +1,7 @@
 <launch>
     <!-- Source data -->
     <include file="$(find probabilistic_basics)/launch/basics.launch">
-        <arg name="dataset3" value="true"/>
+        <arg name="dataset2" value="true"/>
     </include>
 
     <!-- Split & merge -->
