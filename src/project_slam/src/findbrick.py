@@ -7,6 +7,9 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import rospy
 import sensor_msgs.point_cloud2 as pc2
+from std_msgs.msg import String
+from sensor_msgs.msg import Image, PointCloud2
+
 
 
 import tf
@@ -26,9 +29,9 @@ class FindBrick(object):
 
         image_message = bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
 
-        self.image_sub = rospy.Subscriber("image_topic",camera/rgb/image, self.callback)
+        self.image_sub = rospy.Subscriber("camera/rgb/image_raw", Image, self.callback)
 
-        self.depth_sub = rospy.Subscriber("image_topic",'camera/depth_registered/image', self.callback)
+        self.depth_sub = rospy.Subscriber("camera/depth/points", PointCloud2 , self.callback)
 
     def callback(self,data):
 
