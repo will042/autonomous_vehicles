@@ -94,17 +94,33 @@ class EKF_SLAM(object):
         '''
         #TODO: Program this function
         # - Update self.xk and self.Pk using uk and self.Qk
-             
+        # self.xk = funcs.comp(self.xk, uk)
+
         # Compound robot with odometry
         
         # Compute jacobians of the composition with respect to robot (A_k) 
         # and odometry (W_k)
-        
+
+        A = np.array([[1, 0, -1*(np.sin(self.xk[2])*uk[0] + np.cos(self.xk[2])*uk[1])],
+                      [0, 1, np.cos(self.xk[2])*uk[0]-np.sin(self.xk[2])*uk[1]],
+                      [0, 0, 1]])
+
+        W = np.array([[np.cos(self.xk[2]), -np.sin(self.xk[2]), 0],
+                      [np.sin(self.xk[2]), np.cos(self.xk[2]), 0],
+                      [0, 0, 1]])
+
         # Prepare the F_k and G_k matrix for the new uncertainty computation
 
+        num_feats = self.get_number_of_features_in_map()
+        F = scipy.linalg.block_diag(A,np.eye(2*num_feats))
+        G = np.vstack([W,np.zeros([2*num_feats, 3])])
+
         # Compute uncertainty
+        self.Pk = np.dot(np.dot(F,self.Pk),np.transpose(F)) + np.dot(np.dot(G,self.Qk),np.transpose(G))
         
         # Update the class variables
+        self.xk = comp(self.xk,uk)
+
 
     #========================================================================
         

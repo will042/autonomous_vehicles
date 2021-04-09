@@ -35,11 +35,11 @@ class FindBrick(object):
 
         # self.depth_sub = rospy.Subscriber("camera/depth/image_rect", Image , self.depth_callback)
 
-        self.image_sub = message_filters.Subscriber('camera/rgb/image_raw',Image)
+        self.image_sub = message_filters.Subscriber('camera/rgb/image_rect_color',Image)
         
-        self.depth_sub = message_filters.Subscriber('camera/depth/image_raw',Image)
+        self.depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw',Image)
 
-        self.ts = message_filters.TimeSynchronizer([self.image_sub, self.depth_sub], 10)
+        self.ts = message_filters.TimeSynchronizer([self.image_sub, self.depth_sub], 1)
 
         self.ts.registerCallback(self.callback)
 

@@ -11,9 +11,15 @@ import rospy
 import sensor_msgs.point_cloud2 as pc2
 from std_msgs.msg import String
 from sensor_msgs.msg import Image, PointCloud2, LaserScan
-
-import tf
+np.set_printoptions(threshold=sys.maxsize)
+# import tf
+import tf2_ros
+import tf2_msgs.msg
+import geometry_msgs.msg
 from tf.transformations import quaternion_from_euler
+
+
+
 
 class FindBrick(object):
     '''
@@ -23,19 +29,19 @@ class FindBrick(object):
     def __init__(self):
         
         # self.coord_pub = rospy.Publisher("image_topic_2",Coordinates)
-        print('initializing...')
+
+        self.pub_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=1)
+
         self.bridge = CvBridge()
 
-        self.image_sub = rospy.Subscriber("camera/rgb/image_raw", Image, self.image_callback)
+        self.image_sub = rospy.Subscriber("camera/rgb/image_rect_color", Image, self.image_callback)
 
-        # self.xyzrgb_sub = rospy.Subscriber("camera/depth_registered/points", PointCloud2, self.callback)
+        # self.xyzrgb_sub = rospy.Subscriber("camera/depth_registered/points", PointCloud2, self.depth_callback)ros 
 
-        self.depth_sub = rospy.Subscriber("scan", LaserScan , self.depth_callback)
-
-        self.x = 0
+        self.depth_sub = rospy.Subscriber("/camera/depth/image_rect_raw", Image , self.depth_callback)
 
     def image_callback(self,image_data):
-        self.x += 1
+
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(image_data, "bgr8")
         except CvBridgeError as e:
@@ -43,43 +49,81 @@ class FindBrick(object):
 
         self.hsv = cv2.cvtColor(self.cv_image, cv2.COLOR_BGR2HSV)
 
-        # self.hits = (self.red_channel > self.threshold
-        cv2.imshow("RGB", self.hsv)
+        self.red_lower = (0, 100, 100)
+        self.red_upper = (15, 255, 255)
+
+        self.mask = cv2.inRange(self.hsv, self.red_lower, self.red_upper)
+
+        self.result = cv2.bitwise_and(self.hsv, self.hsv, mask=self.mask)
+
+        self.count = (self.mask == 255).sum()
+        self.x_center, self.y_center = np.argwhere(self.mask==255).sum(0)/self.count
+
+
+        # camera_rgb_optical_frame
+
+
+        cv2.imshow("RGB",self.cv_image)
+        cv2.imshow("HSV", self.hsv)
+        cv2.imshow("HSV Masked",self.result)
+        cv2.imshow("Mask", self.mask)
         cv2.waitKey(3)
+
+        # print(self.mask)
 
 
     def depth_callback(self,depth_data):
-        print('hello')
-        print(depth_data.header)
 
+        try:
+            self.cv_depth = self.bridge.imgmsg_to_cv2(depth_data, desired_encoding="passthrough")
+        except CvBridgeError as e:
+            print(e)    
 
+        self.depth_array = np.array(self.cv_depth, dtype=np.float32)
+
+        try:
+            print(self.y_center, self.x_center)
+
+            self.dist = self.depth_array[self.y_center,self.x_center]/1000
+
+            print(self.dist)
+
+            if self.dist > 0:
+
+                self.coordinate_transformation(self.dist)
+        
+        except:
+            None
+
+    def coordinate_transformation(self, x_disp):
+
+        t = geometry_msgs.msg.TransformStamped()
+        t.header.frame_id = "camera_rgb_optical_frame"
+        t.child_frame_id = "brick"
+
+        t.header.stamp = rospy.Time.now()
+        t.transform.translation.x = x_disp
+        t.transform.translation.y = 0.0
+        t.transform.translation.z = 0.0
+        t.transform.rotation.x = 0.0
+        t.transform.rotation.y = 0.0
+        t.transform.rotation.z = 0.0
+        t.transform.rotation.w = 1.0
+        tfm = tf2_msgs.msg.TFMessage([t])
+        self.pub_tf.publish(tfm)
 
 def main(args):
-    FB = FindBrick()
     rospy.init_node('BrickFinder', anonymous=True)
-    # try:
-    #     # rospy.spin()
-    while not rospy.is_shutdown():
-        print(FB.x)
-        rospy.sleep(1)
-    # except KeyboardInterrupt:
-    #     print("Shutting down")
-    # cv2.destroyAllWindows()
+    FB = FindBrick()
+
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main(sys.argv)
 
 
-# if __name__ == '__main__':
-
-#     # ROS initializzation
-#     rospy.init_node('findbrick')
-#     node = FindBrick()
-    
-#     # Filter at 10 Hz
 #     r = rospy.Rate(10)
-
-#     while not rospy.is_shutdown():
-
-#         node.iterate()
-#         r.sleep()
