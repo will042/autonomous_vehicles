@@ -27,8 +27,6 @@ class FindBrick(object):
     '''
 
     def __init__(self):
-        
-        # self.coord_pub = rospy.Publisher("image_topic_2",Coordinates)
 
         self.pub_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=1)
 
@@ -58,9 +56,6 @@ class FindBrick(object):
 
         self.count = (self.mask == 255).sum()
         self.x_center, self.y_center = np.argwhere(self.mask==255).sum(0)/self.count
-
-
-        # camera_rgb_optical_frame
 
 
         cv2.imshow("RGB",self.cv_image)
