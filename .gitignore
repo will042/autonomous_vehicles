@@ -2,3 +2,16 @@
 /.vscode
 /build
 /devel
+/kobuki_bumper2pc
+/kobuki_description
+/kobuki_gazebo_plugins
+/kobuki_keyop
+/kobuki_msgs
+/kobuki_node
+/kobuki_safety_controller
+/turtlebot
+/turtlebot_apps
+/turtlebot_msgs
+/turtlebot_simulator
+/yocs_cmd_vel_mux
+/yocs_controllers
