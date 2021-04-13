@@ -47,20 +47,16 @@ class FindBrick(object):
 
         self.hsv = cv2.cvtColor(self.cv_image, cv2.COLOR_BGR2HSV)
 
-        self.red_lower = (0, 100, 100)
-        self.red_upper = (15, 255, 255)
+        self.red_lower = (169, 125, 125)
+        self.red_upper = (179, 255, 255)
 
         self.mask = cv2.inRange(self.hsv, self.red_lower, self.red_upper)
 
         self.result = cv2.bitwise_and(self.hsv, self.hsv, mask=self.mask)
 
-        self.count = (self.mask == 255).sum()
-        self.x_center, self.y_center = np.argwhere(self.mask==255).sum(0)/self.count
-
-
-        cv2.imshow("RGB",self.cv_image)
-        cv2.imshow("HSV", self.hsv)
-        cv2.imshow("HSV Masked",self.result)
+        # cv2.imshow("RGB",self.cv_image)
+        # cv2.imshow("HSV", self.hsv)
+        # cv2.imshow("HSV Masked",self.result)
         cv2.imshow("Mask", self.mask)
         cv2.waitKey(3)
 
@@ -76,34 +72,40 @@ class FindBrick(object):
 
         self.depth_array = np.array(self.cv_depth, dtype=np.float32)
 
+
+
         try:
-            print(self.y_center, self.x_center)
+            self.count = (self.mask == 255).sum()
 
-            self.dist = self.depth_array[self.y_center,self.x_center]/1000
+            if self.count > 100:
+                self.x_center, self.y_center = np.argwhere(self.mask==255).sum(0)/self.count
+            
+                self.dist = self.depth_array[self.y_center,self.x_center]/1000
 
-            print(self.dist)
-
-            if self.dist > 0:
-
+            if self.dist > 0 and 250<self.y_center<450:
+                print(self.y_center, self.x_center)
+                print(self.dist)
                 self.coordinate_transformation(self.dist)
         
         except:
             None
 
-    def coordinate_transformation(self, x_disp):
+    def coordinate_transformation(self, dist):
 
         t = geometry_msgs.msg.TransformStamped()
-        t.header.frame_id = "camera_rgb_optical_frame"
+        t.header.frame_id = "camera_rgb_frame"
         t.child_frame_id = "brick"
 
         t.header.stamp = rospy.Time.now()
-        t.transform.translation.x = x_disp
+        t.transform.translation.x = dist
         t.transform.translation.y = 0.0
         t.transform.translation.z = 0.0
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
+        # t.transform.rotation.z = 0.7070904
+        # t.transform.rotation.w = 0.7071232
         t.transform.rotation.z = 0.0
-        t.transform.rotation.w = 1.0
+        t.transform.rotation.w = 1
         tfm = tf2_msgs.msg.TFMessage([t])
         self.pub_tf.publish(tfm)
 
