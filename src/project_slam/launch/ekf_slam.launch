@@ -9,7 +9,7 @@
 
     <!--  Select one of the datasets below   -->
     <arg name="dataset1" default="false"/>
-    <arg name="dataset2" default="true"/>
+    <arg name="dataset2" default="false"/>
     <arg name="dataset3" default="false"/>
 
     <!-- Source data -->

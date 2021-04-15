@@ -77,7 +77,7 @@ class FindBrick(object):
         try:
             self.count = (self.mask == 255).sum()
 
-            if self.count > 100:
+            if self.count > 200:
                 self.x_center, self.y_center = np.argwhere(self.mask==255).sum(0)/self.count
             
                 self.dist = self.depth_array[self.y_center,self.x_center]/1000
@@ -102,12 +102,12 @@ class FindBrick(object):
         t.transform.translation.z = 0.0
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
-        # t.transform.rotation.z = 0.7070904
-        # t.transform.rotation.w = 0.7071232
         t.transform.rotation.z = 0.0
         t.transform.rotation.w = 1
         tfm = tf2_msgs.msg.TFMessage([t])
         self.pub_tf.publish(tfm)
+
+    
 
 def main(args):
     rospy.init_node('BrickFinder', anonymous=True)

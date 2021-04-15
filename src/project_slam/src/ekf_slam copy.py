@@ -3,10 +3,9 @@
 
 from math import *
 import numpy as np
-from probabilistic_lib.functions import angle_wrap, comp, compInv
-from scipy.linalg import block_diag
+from probabilistic_lib.functions import angle_wrap, comp, state_inv, state_inv_jacobian, compInv
+import scipy.linalg
 import rospy
-
 
 #============================================================================
 class EKF_SLAM(object):
@@ -32,7 +31,7 @@ class EKF_SLAM(object):
         self.odom_ang_sigma = odom_ang_sigma
         self.meas_rng_noise = meas_rng_noise
         self.meas_ang_noise = meas_ang_noise
-        self.chi_thres = 0.103 # TODO chose your own value
+        self.chi_thres = 0.1 # TODO chose your own value
        
         # Odometry uncertainty 
         self.Qk = np.array([[ self.odom_lin_sigma**2, 0, 0],\
@@ -89,47 +88,45 @@ class EKF_SLAM(object):
         
     #========================================================================
     def predict(self, uk):
+        
         '''
-        Predicts the position of the robot according to the previous position
-        and the odometry measurements. It also updates the uncertainty of the
-        position
+        Predicts the position of the robot according to the previous position and the odometry measurements. It also updates the uncertainty of the position
         '''
         #TODO: Program this function
         # - Update self.xk and self.Pk using uk and self.Qk
+        # self.xk = funcs.comp(self.xk, uk)
 
+        # Compound robot with odometry
+        
         # Compute jacobians of the composition with respect to robot (A_k) 
         # and odometry (W_k)
-        A = np.array([[1, 0, -np.sin(self.xk[2])*uk[0]-np.cos(self.xk[2])*uk[1]],\
-                     [0, 1, +np.cos(self.xk[2])*uk[0]-np.sin(self.xk[2])*uk[1]],\
-                     [0, 0, 1]])
 
-        W = np.array([[np.cos(self.xk[2]), -np.sin(self.xk[2]), 0],\
-                     [np.sin(self.xk[2]), +np.cos(self.xk[2]), 0],\
-                     [0, 0, 1]]) 
+        A = np.array([[1, 0, -1*(np.sin(self.xk[2])*uk[0] + np.cos(self.xk[2])*uk[1])],
+                      [0, 1, np.cos(self.xk[2])*uk[0]-np.sin(self.xk[2])*uk[1]],
+                      [0, 0, 1]])
+
+        W = np.array([[np.cos(self.xk[2]), -np.sin(self.xk[2]), 0],
+                      [np.sin(self.xk[2]), np.cos(self.xk[2]), 0],
+                      [0, 0, 1]])
 
         # Prepare the F_k and G_k matrix for the new uncertainty computation
-        nf = self.get_number_of_features_in_map()
-        F = block_diag(A,np.eye(2*nf))
 
-        G = np.vstack([W,np.zeros([2*nf, 3])])  
- 
-        #ipdb.set_trace()
+        num_feats = self.get_number_of_features_in_map()
+        F = scipy.linalg.block_diag(A,np.eye(2*num_feats))
+        G = np.vstack([W,np.zeros([2*num_feats, 3])])
 
         # Compute uncertainty
-        self.Pk = np.dot(np.dot(F,self.Pk),(F.T)) + np.dot(np.dot(G,self.Qk),(G.T))
-
+        self.Pk = np.dot(np.dot(F,self.Pk),np.transpose(F)) + np.dot(np.dot(G,self.Qk),np.transpose(G))
+        
         # Update the class variables
-        self.xk[0:3] = comp(self.xk[0:3],uk)
+        self.xk = comp(self.xk,uk)
+
+
     #========================================================================
         
     def data_association(self, lines):
         '''
-        Implements ICNN for each feature of the scan.
-        Innovk_List -> matrix containing the innovation for each associated 
-                       feature
-        H_k_List -> matrix of the jacobians.
-        S_f_List -> matrix of the different S_f for each feature associated
-        Rk_List -> matrix of the noise of each measurement
+        Implements ICCN for each feature of the scan.
         '''
     
         #TODO: Program this function
@@ -138,7 +135,6 @@ class EKF_SLAM(object):
         #   2- for each feature of the map (in the state vector) compute the 
         #      mahalanobis distance
         #   3- Data association
-        # Variables for finding minimum
         minD = 1e9
         minj = -1
         n = self.get_number_of_features_in_map()
@@ -148,45 +144,43 @@ class EKF_SLAM(object):
         S_f_List      = np.zeros((0,0))
         Rk_List       = np.zeros((0,0))
         idx_not_associated = np.zeros((0,1))
-
+        
         for i in range(0, lines.shape[0]):
 
-                z = self.get_polar_line(lines[i, :],[0.0,0.0,0.0]);
+            z = self.get_polar_line(lines[i, :],[0.0,0.0,0.0])
 
+            for j in range(0, self.get_number_of_features_in_map()):
 
-                for j in range(0, self.get_number_of_features_in_map()):
+                [D,v,h,H,S] = self.lineDist(z, j)
+                islonger = False
+                if np.sqrt(D) < minD and not islonger:
+                        minj = j
+                        minz = z
+                        minh = h    
+                        minH = H
+                        minv = v
+                        minS = S
+                        minD = np.sqrt(D)
 
+            # Minimum distance below threshold
+            if minD < self.chi_thres:
+                    print("\t", minz, "->", minh)
+                    # Append results
+                    if self.featureObservedN[j] > self.min_observations :
+                        Innovk_List = np.append(Innovk_List,minv)
 
-                        [D,v,h,H,S] = self.lineDist(z, j)
-                        islonger = False
-                        if np.sqrt(D) < minD and not islonger:
-                                minj = j
-                                minz = z
-                                minh = h    
-                                minH = H
-                                minv = v
-                                minS = S
-                                minD = np.sqrt(D)
-       
-                # Minimum distance below threshold
-                if minD < self.chi_thres:
-                        print "\t", minz, "->", minh
-                        # Append results
-                        if self.featureObservedN[j] > self.min_observations :
-                            Innovk_List = np.append(Innovk_List,minv)
+                        H_k_List  = np.vstack((H_k_List ,minH))
 
-                            H_k_List  = np.vstack((H_k_List ,minH))
+                        S_f_List = np.append(S_f_List,minS)
 
-                            S_f_List = np.append(S_f_List,minS)
+                        Rk_List = scipy.linalg.block_diag(Rk_List,self.Rk)
+                    else:
+                        self.featureObservedN[j] = self.featureObservedN[j]+1
 
-                            Rk_List = block_diag(Rk_List,self.Rk)
-                        else:
-                            self.featureObservedN[j] = self.featureObservedN[j]+1
-
-                else:        
-                        idx_not_associated = np.append(idx_not_associated,i)
-                
-        return Innovk_List, H_k_List, S_f_List, Rk_List, idx_not_associated
+            else:        
+                    idx_not_associated = np.append(idx_not_associated,i)
+                            
+        return Innovk_List, H_k_List, Rk_List, idx_not_associated
         
     #========================================================================
     def update_position(self, Innovk_List, H_k_List, Rk_List) :
@@ -194,6 +188,7 @@ class EKF_SLAM(object):
         Updates the position of the robot according to the given the position
         and the data association parameters.
         Returns state vector and uncertainty.
+        
         '''
         #TODO: Program this function
         if Innovk_List.shape[0]<1:
@@ -205,11 +200,14 @@ class EKF_SLAM(object):
             
         # Kalman Gain
         K = np.dot(np.dot(self.Pk, (H_k_List.T)), np.linalg.inv(S))
+
         # Update Position
         self.xk = self.xk + np.dot(K,Innovk_List)
+
         # Update Uncertainty
         m = np.eye(3+2*n) - np.dot(K, H_k_List)
         self.Pk = np.dot(np.dot(m, self.Pk), m.T) + np.dot(np.dot(K, Rk_List), K.T)   
+ 
     #========================================================================
     def state_augmentation(self, lines, idx):
         '''
@@ -220,14 +218,13 @@ class EKF_SLAM(object):
         n = self.get_number_of_features_in_map()
         H_1 = np.eye(3+2*n)
         H_2 = np.zeros((3+2*n,2))
-        
         # If no features to add to the map exit function
-        # TODO Program this function
         if idx.size<1:
-            return 
-
+            return
+        
+        # TODO Program this function
         for i in range(idx.size):
-            z = self.get_polar_line(lines[i, :],[0.0,0.0,0.0])
+            z = self.get_polar_line(lines[idx[i], :],[0.0,0.0,0.0])
             [z_tf, H_tf, H_line] = self.tfPolarLine(self.xk[0:3],z)
 
             self.featureObservedN = np.append(self.featureObservedN,1)
@@ -254,14 +251,17 @@ class EKF_SLAM(object):
         # Compute the new phi
         phi = angle_wrap(line[1] + x_ang)
         
-        # Auxiliar computations
+        # rho_ = line[0] + x_x * np.cos(phi) + x_y * np.sin(phi)
+        # sign = 1
+        # if rho_ <0:
+        #     rho_ = -rho_
+        #     phi = angle_wrap(phi+pi)   
+        #     sign = -1
         sqrt2 = x_x**2+x_y**2
         sqrt = np.sqrt(sqrt2)
         atan2 = np.arctan2(x_y,x_x)
         sin = np.sin(atan2 - phi)
         cos = np.cos(atan2 - phi)
-        
-        # Compute the new rho
         rho = line[0] + sqrt* cos  
         if rho <0:
             rho = -rho
@@ -271,15 +271,15 @@ class EKF_SLAM(object):
         H_tf = np.zeros((2,3))
         H_line = np.eye(2)
 
-       # TODO: Evaluate jacobian respect to transformation
+        # TODO: Evaluate jacobian respect to transformation
         H_tf[0,0] = np.cos(phi)
         H_tf[0,1] = np.sin(phi)
         H_tf[0,2] = -x_x*np.sin(phi) + x_y*np.cos(phi)
         H_tf[1,2] = 1
-
+        
         # TODO: Evaluate jacobian respect to line
         H_line[0,1] = -x_x*np.sin(phi) + x_y*np.cos(phi)
-                
+
         return np.array([rho,phi]), H_tf, H_line
                 
     #========================================================================
@@ -291,6 +291,10 @@ class EKF_SLAM(object):
         # TODO program this function
                 
         # Transform the map line into robot frame and compute jacobians
+        # h = []
+        # H_position = []
+        # H_line =[]
+
         x_rw = self.xk[0:3]
 
         [tf , J1] = compInv(x_rw)
@@ -305,9 +309,11 @@ class EKF_SLAM(object):
         
         # Concatenate position jacobians and place them into the position
         H[0:2,0:3] = H_position
+
         # Place the position of the jacobina with respec to the line in its
         # position
         H[0:2,3+2*idx:5+2*idx] = H_line
+
         # Calculate innovation
         v = z - h
         
@@ -317,4 +323,4 @@ class EKF_SLAM(object):
         # Calculate mahalanobis distance
         D = np.dot(np.dot(v.T,np.linalg.inv(S)), v) 
         
-        return D,v,h,H,S
+        return D,v,h,H
