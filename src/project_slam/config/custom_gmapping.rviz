@@ -6,7 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Axes1
+        - /Marker1
+        - /Marker1/Status1
       Splitter Ratio: 0.5
     Tree Height: 554
   - Class: rviz/Selection
@@ -246,11 +247,19 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 0.5
       Name: Axes
       Radius: 0.029999999329447746
       Reference Frame: brick
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /brickmarker
+      Name: Marker
+      Namespaces:
+        object_detection: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -280,7 +289,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.543999671936035
+      Distance: 17.765220642089844
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -295,10 +304,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.785398006439209
+      Pitch: 1.0347965955734253
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.785398006439209
+      Yaw: 4.28358268737793
     Saved: ~
 Window Geometry:
   Displays:

@@ -52,12 +52,11 @@ class LocalizationNode(object):
         self.pub_uncertainity = rospy.Publisher(
             "uncertainity", Marker, queue_size=0)
         self.pub_laser = rospy.Publisher("ekf_laser", LaserScan, queue_size=0)
-        self.pub_scans = rospy.Publisher("local_map/scan", LaserScan, queue_size=0)
 
         # Subscribers
         self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
         self.sub_scan = rospy.Subscriber("lines", Marker, self.lines_callback)
-        self.sub_scans = rospy.Subscriber("scan", LaserScan, self.scan_callback)
+
         # TF
         self.tfBroad = tf.TransformBroadcaster()
 
@@ -172,13 +171,6 @@ class LocalizationNode(object):
         self.pub_laser.publish(msg)
 
     # ==========================================================================
-    def scan_callback(self, msg):
-        """
-        Republishes laser scan into the correct topic.
-        """
-        self.pub_scans.publish(msg)
-
-    # ==========================================================================
     def lines_callback(self, msg):
         """Callback to a LaserScan message with topic "scan"."""
         # Save time
@@ -227,8 +219,9 @@ class LocalizationNode(object):
         # Weightimg and resampling
         if self.new_laser:
 
-            Innovk_List, H_k_List,S_f_List, Rk_List, idx_not_associated = self.ekf.data_association(self.lines.copy())
-            self.ekf.update_position(Innovk_List, H_k_List, S_f_List, Rk_List)
+            Innovk_List, H_k_List, S_f_List, Rk_List, idx_not_associated = \
+                self.ekf.data_association(self.lines.copy())
+            self.ekf.update_position(Innovk_List, H_k_List, Rk_List)
             self.ekf.state_augmentation(self.lines.copy(), idx_not_associated)
             self.new_laser = False
             self.pub = True
