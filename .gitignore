@@ -15,3 +15,5 @@ src/turtlebot_msgs
 src/turtlebot_simulator
 src/yocs_cmd_vel_mux
 src/yocs_controllers
+
+!src/turtlebot_apps/turtlebot_navigation/launch/includes/gmapping/gmapping.launch.xml
