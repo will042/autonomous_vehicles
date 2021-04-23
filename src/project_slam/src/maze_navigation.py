@@ -21,7 +21,7 @@ class Follow_Wall(object):
 
     def __init__(self):
 
-        self.dist = 1
+        self.laser_dist = 1
 
         self.wall_flag = 0
 
@@ -43,15 +43,15 @@ class Follow_Wall(object):
         # except CvBridgeError as e:
         #     print(e)    
         # self.depth_array = np.array(self.cv_depth, dtype=np.float32)
-        # self.dist = self.depth_array[239,319]/1000
+        # self.laser_dist = self.depth_array[239,319]/1000
 
-        self.dist = laserdata.ranges[320]
+        self.laser_dist = laserdata.ranges[320]
         # print(laserdata.ranges[0],laserdata.ranges[320],laserdata.ranges[639])
-        # print(self.dist)
+        # print(self.laser_dist)
 
     # def follower_loop(self):
 
-    #     if self.dist > 0.5 and not math.isnan(self.dist):
+    #     if self.laser_dist > 0.5 and not math.isnan(self.laser_dist):
     #         self.vel_msg.angular.z = 0.0
     #         self.vel_msg.linear.x = 0.1
     #         print('forward')
@@ -61,71 +61,96 @@ class Follow_Wall(object):
     #         if self.wall_flag == 0:
     #             self.vel_msg.angular.z = 1.2
     #             self.vel_msg.linear.x = 0.0
-    #             while self.dist < 0.9 or math.isnan(self.dist):
+    #             while self.laser_dist < 0.9 or math.isnan(self.laser_dist):
     #                 self.pub_vel.publish(self.vel_msg)
     #                 print('left')
     #                 sleep(.5)
-    #                 print(self.dist)
+    #                 print(self.laser_dist)
     #             self.wall_flag = 1
 
     #         else:
     #             self.vel_msg.angular.z = -1.2
     #             self.vel_msg.linear.x = 0.0
-    #             while self.dist < 0.9 or math.isnan(self.dist):
+    #             while self.laser_dist < 0.9 or math.isnan(self.laser_dist):
     #                 self.pub_vel.publish(self.vel_msg)
     #                 print('right')
     #                 sleep(.5)
-    #                 print(self.dist)
+    #                 print(self.laser_dist)
     #             self.wall_flag = 0
     #     # self.pub_vel.publish(self.vel_msg)
 
+    # def turn_left(self):
+    #     self.i = 0
+    #     self.vel_msg.angular.z = 0.5
+    #     self.vel_msg.linear.x = 0.0
+    #     print('Turning left 90 degrees')
+    #     while self.i<50:
+    #         self.pub_vel.publish(self.vel_msg)
+    #         sleep(.1)
+    #         self.i += 1
+    #     sleep(1)
+
+    # def turn_right(self):
+    #     self.i = 0
+    #     self.vel_msg.angular.z = -0.5
+    #     self.vel_msg.linear.x = 0.0
+    #     print('Turning right 90 degrees')
+    #     while self.i<50:
+    #         self.pub_vel.publish(self.vel_msg)
+    #         sleep(.1)
+    #         self.i += 1
+    #     sleep(1)
+
+
     def turn_left(self):
         self.i = 0
-        self.vel_msg.angular.z = 0.5
+        self.vel_msg.angular.z = 1.0
         self.vel_msg.linear.x = 0.0
         print('Turning left 90 degrees')
-        while self.i<50:
+        while self.i<19:
             self.pub_vel.publish(self.vel_msg)
             sleep(.1)
             self.i += 1
-        sleep(1)
+        sleep(0.3)
 
     def turn_right(self):
         self.i = 0
-        self.vel_msg.angular.z = -0.5
+        self.vel_msg.angular.z = -1.0
         self.vel_msg.linear.x = 0.0
         print('Turning right 90 degrees')
-        while self.i<50:
+        while self.i<19:
             self.pub_vel.publish(self.vel_msg)
             sleep(.1)
             self.i += 1
-        sleep(1)
+        sleep(0.3)
 
     def drive_forward(self):
         self.vel_msg.angular.z = 0.0
-        self.vel_msg.linear.x = 0.1
+        self.vel_msg.linear.x = 0.25
         self.pub_vel.publish(self.vel_msg)
-        self.forward_dist = self.dist
+        self.forward_dist = self.laser_dist
 
 
     def follower_loop(self):
 
-        if self.dist > 0.3 and not math.isnan(self.dist) and self.wall_flag == 0:
+        if self.laser_dist > 0.5 and not math.isnan(self.laser_dist) and self.wall_flag == 0:
             self.drive_forward()
 
         else:
             if self.wall_flag == 0:
                 sleep(1)
-                print('forward_dist = ', self.dist)
+                print('forward_dist = ', self.laser_dist)
                 print('checking left')
                 self.turn_left()
+                self.turn_left()
+                self.turn_right()
                 self.wall_flag = 1
                 print('wall_flag = 1')
                 sleep(1)
 
             elif self.wall_flag == 1:
-                self.left_dist = self.dist
-                if self.dist > 0.5 and not math.isnan(self.dist):
+                self.left_dist = self.laser_dist
+                if self.laser_dist > 0.5 and not math.isnan(self.laser_dist):
                     self.left_clear = 1
                     print('left_clear = 1')
                     print('left_dist = ', self.left_dist)
@@ -138,8 +163,8 @@ class Follow_Wall(object):
                 print('wall_flag = 2')
 
             elif self.wall_flag == 2:
-                self.right_dist = self.dist
-                if self.dist > 0.5 and not math.isnan(self.dist):
+                self.right_dist = self.laser_dist
+                if self.laser_dist > 0.5 and not math.isnan(self.laser_dist):
                     self.right_clear = 1
                     print('right_clear = 1')
                 else:
@@ -171,7 +196,6 @@ def main(args):
     rospy.init_node('Wall_Follower', anonymous=True)
     FW = Follow_Wall()
 
-    FW.turn_right()
 
     while not rospy.is_shutdown():
         FW.follower_loop()

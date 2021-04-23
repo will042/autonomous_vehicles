@@ -1,0 +1,8 @@
+<launch>
+
+
+    <!-- RViz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find project_slam)/config/custom_gmapping.rviz" output="screen"/>
+    
+    
+</launch>

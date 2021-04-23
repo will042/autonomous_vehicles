@@ -1,0 +1,7 @@
+<launch>
+
+    <!-- Navigation node -->
+    <node pkg="project_slam" type="maze_navigation.py" name="maze_navigation_node" output="screen"/>
+
+
+</launch>

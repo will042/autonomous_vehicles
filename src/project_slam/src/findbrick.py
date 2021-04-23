@@ -63,8 +63,8 @@ class FindBrick(object):
         # cv2.imshow("RGB",self.cv_image)
         # cv2.imshow("HSV", self.hsv)
         # cv2.imshow("HSV Masked",self.result)
-        # cv2.imshow("Mask", self.mask)
-        # cv2.waitKey(3)
+        cv2.imshow("Mask", self.mask)
+        cv2.waitKey(3)
 
         # print(self.mask)
 
@@ -83,7 +83,7 @@ class FindBrick(object):
         try:
             self.count = (self.mask == 255).sum()
 
-            if self.count > 200:
+            if self.count > 300:
                 self.x_center, self.y_center = np.argwhere(self.mask==255).sum(0)/self.count
             
                 self.dist = self.depth_array[self.y_center,self.x_center]/1000
@@ -189,10 +189,11 @@ def main(args):
     FB = FindBrick()
 
     try:
+        rospy.Rate(0.5)
         rospy.spin()
     except KeyboardInterrupt:
         print("Shutting down")
-    # cv2.destroyAllWindows()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main(sys.argv)
